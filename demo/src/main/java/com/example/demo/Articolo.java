@@ -6,6 +6,7 @@ public class Articolo {
     private String Tipologia;
     private Integer Giacenza;
     private float PrezzoUnitario;
+    
     public Integer getArticoloID() {
         return ArticoloID;
     }
