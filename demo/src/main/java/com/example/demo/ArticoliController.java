@@ -9,6 +9,7 @@ import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
 
+
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
@@ -18,6 +19,7 @@ import com.google.gson.GsonBuilder;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
 
 
 @RestController
@@ -27,7 +29,7 @@ public class ArticoliController
     // 1. Inserimento di un nuovo ordine. Input: ArticoloID (solo PF quindi solo ArticoloID=1 oppure ArticoloID=2)  
     // e QuantitaDaProdurre (numero intero).  La  WebAPI inserisce il nuovo Ordine in TOrdini. 
     // Non inserire il CostoTotaleSemilavorati perché verrà aggiornato in una chiamata successiva
-    @RequestMapping(value = "/aggiungiordine", method=RequestMethod.GET)
+    @PostMapping(value = "/aggiungiordine")
     public String aggiungiOrdine(@RequestParam int id,int quant) {
         try {
             DriverManager.registerDriver(new com.microsoft.sqlserver.jdbc.SQLServerDriver());
@@ -66,9 +68,9 @@ public class ArticoliController
     // La WebAPI aggiunge i vari fabbisogni in TFabbisogni per ogni SL  necessario per produrre il PF. 
     // Attenzione che se all’OrdineID sono già associati dei fabbisogni-> vanno prima cancellati altrimenti si rischia di 
     // avere fabbisogni duplicati per un singolo ordine
-    @RequestMapping(value="/calcolofabbisogni", method=RequestMethod.GET)
+   @PostMapping(value="/calcolofabbisogni")
     public String calcoloFabbisogni(@RequestParam int ordineid) {
-
+        
         try {
             DriverManager.registerDriver(new com.microsoft.sqlserver.jdbc.SQLServerDriver());
         } catch (SQLException e) {
@@ -76,13 +78,15 @@ public class ArticoliController
         }
         String dbURL = "jdbc:sqlserver://localhost;encrypt=true;databaseName=DBJava;integratedSecurity=true;trustServerCertificate=true;";
         Connection conn;
-        
+
         try {
+
             conn = DriverManager.getConnection(dbURL);
             String checkOrderSql = "SELECT * FROM TFabbisogni WHERE OrdineID = ?";
             PreparedStatement preparedStatementCheck = conn.prepareStatement(checkOrderSql);
             preparedStatementCheck.setInt(1, ordineid);
             ResultSet resultSet = preparedStatementCheck.executeQuery();
+
             if (resultSet.next()) {
                 String deleteFabbisogni = "DELETE FROM TFabbisogni where OrdineID = ?";
                 PreparedStatement deleteStatement = conn.prepareStatement(deleteFabbisogni);
@@ -118,7 +122,7 @@ public class ArticoliController
             return "La tabella dei fabbisogni è stata aggiornata!";
         } catch (Exception e2) {
             return e2.toString();
-        }
+        }  
     }
 
 
@@ -170,7 +174,7 @@ public class ArticoliController
     // lo scarico di magazzino per quel determinato OrdineID. Attenzione che se TOrdini.
     // ScaricoEffettuato=true è necessario comunicare che lo scarico è già stato effettuato e quindi la procedura 
     // si interrompe altrimenti si rischia uno scarico magazzino multiplo.
-    @RequestMapping(value = "/scaricomagazzino", method=RequestMethod.GET)
+    @PostMapping(value = "/scaricomagazzino")
     public String scaricoMagazzino(@RequestParam int ordineid) {
         try {
             DriverManager.registerDriver(new com.microsoft.sqlserver.jdbc.SQLServerDriver());
@@ -231,7 +235,6 @@ public class ArticoliController
     //5.  Calcolo del Costo Totale dei Semilavorati per un Ordine.  Input OrdineID.  
     // La WebAPI calcola il costo totale dei semilavorati per quello specifico Ordine 
     // e va ad aggiornare la TOrdini compilando il campo CostoTotaleSemilavorati 
-    
     @PutMapping("/calcolacostosemilavorati")
     public String calcolaCostoTotale(@RequestParam Integer ordineId) 
     {
@@ -278,15 +281,12 @@ public class ArticoliController
     }
     }
 
+
     //6. Calcolo del costo Totale per un prodotto finito: Input ArticoloID (prodotto finito 1 o 2):  
     // la WebAPI calcola il costo totale dei semilavorati per quello specifico prodotto finito e va ad aggiornare 
     // la TArticoli compilando il campo CostoUnitario solo per quell’articoloID (1 oppure 2).
-
     @PutMapping("/calcolocostofinale")
     public String calcoloCostoFinale(@RequestParam Integer articoloid) {
-        
-
-
         if(articoloid!=1&&articoloid!=2){
             return "Id inserito non valido";
         }
