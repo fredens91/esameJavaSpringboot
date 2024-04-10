@@ -16,6 +16,9 @@ import org.springframework.web.bind.annotation.RestController;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.PathVariable;
+
 
 @RestController
 public class ArticoliController 
@@ -225,7 +228,6 @@ public class ArticoliController
     }
 
 
-
     //5.  Calcolo del Costo Totale dei Semilavorati per un Ordine.  Input OrdineID.  
     // La WebAPI calcola il costo totale dei semilavorati per quello specifico Ordine 
     // e va ad aggiornare la TOrdini compilando il campo CostoTotaleSemilavorati 
@@ -276,11 +278,54 @@ public class ArticoliController
     }
     }
 
-    //6. Calcolo del costo Totale del costo Unitario per un prodotto finito: Input ArticoloID (prodotto finito 1 o 2) :  
+    //6. Calcolo del costo Totale per un prodotto finito: Input ArticoloID (prodotto finito 1 o 2):  
     // la WebAPI calcola il costo totale dei semilavorati per quello specifico prodotto finito e va ad aggiornare 
     // la TArticoli compilando il campo CostoUnitario solo per quell’articoloID (1 oppure 2).
 
-    
+    @PutMapping("/calcolocostofinale")
+    public String calcoloCostoFinale(@RequestParam Integer articoloid) {
+        
+
+
+        if(articoloid!=1&&articoloid!=2){
+            return "Id inserito non valido";
+        }
+        else{
+
+            try 
+        {
+            String dbURL = "jdbc:sqlserver://localhost; databaseName=DBJava;integratedSecurity=true;encrypt=true;trustServerCertificate=true;";
+            Connection myConnection = DriverManager.getConnection(dbURL);
+            float costoTotale=0;
+            String queryCostoTotale = "SELECT ArticoloID_figlio, CoefficienteFabbisogno FROM TLegami WHERE ArticoloID_padre = ?";
+            PreparedStatement preparedStatement = myConnection.prepareStatement(queryCostoTotale);
+            preparedStatement.setInt(1, articoloid);
+            int quantitaFabbisogno,artFiglio;
+            float costoUnitario;
+            ResultSet resultSet = preparedStatement.executeQuery();
+            while(resultSet.next()){
+                quantitaFabbisogno = resultSet.getInt("CoefficienteFabbisogno");
+                artFiglio=resultSet.getInt("ArticoloID_figlio");
+                String queryCosto = "SELECT CostoUnitario FROM TArticoli WHERE ArticoloID = ?";
+                PreparedStatement preparedStmt2lavendetta = myConnection.prepareStatement(queryCosto);
+                preparedStmt2lavendetta.setInt(1, artFiglio);
+                ResultSet resultSet2lavendetta = preparedStmt2lavendetta.executeQuery();
+                if(resultSet2lavendetta.next()) {
+                    costoUnitario = resultSet2lavendetta.getFloat("CostoUnitario");
+                    costoTotale += costoUnitario * quantitaFabbisogno;
+                } else {
+                    return "Articolo non presente nel database";
+                }
+            }
+            return "Costo totale: " + costoTotale;
+        }
+        catch(Exception ex) {
+            return ex.toString();
+        }
+
+        }
+    }
+
 
 
 
